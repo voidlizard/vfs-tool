@@ -37,7 +37,7 @@ data BlockNum = Block1
               deriving (Eq,Ord,Bounded,Enum,Show)
 
 
-data VFSFigure = A | B | C | D | E | F | J | H | K | L | M | N | O | P | Q
+data VFSFigure = A | B | C | D | E | F | G | H | J | K | L | M | N | O | P | Q
                  deriving (Eq,Ord,Bounded,Enum,Show)
 
 instance ToText BlockNum where
@@ -71,8 +71,9 @@ instance ToText VFSFigure where
   toText D = "D"
   toText E = "E"
   toText F = "F"
-  toText J = "J"
+  toText G = "G"
   toText H = "H"
+  toText J = "J"
   toText K = "K"
   toText L = "L"
   toText M = "M"
@@ -93,7 +94,7 @@ vfsItems :: Map Text VFSItem
 vfsItems =
   Map.fromList
     [ ("A", Figure A),  ("B", Figure B), ("C", Figure C), ("D",Figure D)
-    , ("E", Figure E),  ("F", Figure F), ("J", Figure J), ("H",Figure H)
+    , ("E", Figure E),  ("F", Figure F), ("G", Figure G), ("H",Figure H), ("J", Figure J)
     , ("K", Figure K),  ("L", Figure L), ("M", Figure M), ("N",Figure N)
     , ("O", Figure O),  ("P", Figure P), ("Q", Figure Q)
     , ("1",  Block Block1),  ("2", Block Block2),  ("3", Block Block3), ("4",  Block Block4)
