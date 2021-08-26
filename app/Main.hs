@@ -1,12 +1,18 @@
+{-# LANGUAGE QuasiQuotes, ExtendedDefaultRules #-}
 module Main where
 
-import qualified Data.Char as Char
-import Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Map as Map
+import Control.Monad
+import Control.Monad.Reader
 import Data.Map (Map)
-import Data.Text.Conversions (ToText(..))
 import Data.Maybe (catMaybes)
+import Data.Text.Conversions (ToText(..))
+import Data.Text (Text)
+import Options.Applicative hiding (columns)
+import qualified Data.Char as Char
+import qualified Data.Map as Map
+import qualified Data.Text as Text
+import qualified Data.Text.IO as Text
+import Text.InterpolatedString.Perl6 (qq,qc)
 
 
 data VFSItem = Figure VFSFigure | Block BlockNum
@@ -89,6 +95,9 @@ instance ToText VFSItem where
 instance ToText (VFSItem,VFSItem) where
   toText (a,b) = toText a <> "-" <> toText b
 
+instance ToText [VFSItem] where
+  toText s = Text.intercalate "-" (fmap toText s)
+
 
 vfsItems :: Map Text VFSItem
 vfsItems =
@@ -126,6 +135,82 @@ makeInters items = go items
 
     go []       = []
 
+
+
+newtype RepeatNum = RepeatNum Int
+                    deriving stock (Eq,Ord,Show)
+                    deriving newtype Read
+                    deriving newtype Num
+
+type Opts = ()
+
+optsDef = ()
+
+newtype CommandT m a = CommandT { unCmd :: ReaderT Opts m a }
+                       deriving newtype ( Functor
+                                        , Applicative
+                                        , Monad
+                                        , MonadIO
+                                        , MonadReader Opts
+                                        )
+
+newtype Command = Command { run :: CommandT IO () }
+
+data CLI = CLI Command
+
+pCLI :: Parser CLI
+pCLI = CLI <$> pCmd
+  where
+
+    pCmd = hsubparser (  command "inters"  (info pGenCmd (progDesc  "generate inters"))
+                      )
+
+    pGenCmd = do
+      s <- argument str (metavar "ROUND")
+      n <- option auto ( short 'n' <> long "number" <> metavar "REPEAT NUM" <> value 1)
+      m <- switch ( short 'm' <> long "measures" )
+      t <- switch ( short 't' <> long "task" )
+      pure $ Command (genInters t m n s)
+
+
+runCommad :: (Monad m, MonadIO m) => CommandT m a -> m a
+runCommad m = do
+  runReaderT (unCmd m) optsDef
+
+runCLI :: CLI -> IO ()
+runCLI (CLI (Command cmd)) = runCommad cmd
+
+
+genInters :: Bool -> Bool -> RepeatNum -> Text -> CommandT IO ()
+genInters task measures (RepeatNum n) s = do
+  let t = parseRound s
+  let is = fmap toText $ makeInters t
+
+  when (null t) $ do error "Bad round"
+
+  liftIO $ do
+    when task $ do
+      Text.putStrLn [qc|task {toText t}|]
+      Text.putStrLn ""
+
+  replicateM_ n $ do
+
+    if (task || measures) then do
+      liftIO $ do
+        mapM_ (\x -> Text.putStrLn [qc|measure {x} 0.00|]) is
+        Text.putStrLn ""
+    else
+      liftIO $ do
+        mapM_ Text.putStrLn is
+        Text.putStrLn ""
+
+
+
 main :: IO ()
-main = do
-  putStrLn "Hello, Haskell!"
+main = execParser opts >>= runCLI
+
+ where
+  opts = info (pCLI <**> helper)
+        (    fullDesc
+          <> progDesc "vfs"
+        )

@@ -35,9 +35,13 @@ executable vfs
                      , interpolatedstring-perl6
                      , text-conversions
                      , split
+                     , mtl
 
   hs-source-dirs:      app
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
                      , LambdaCase
                      , FlexibleInstances
+                     , DerivingStrategies
+                     , GeneralizedNewtypeDeriving
+                     , ApplicativeDo
